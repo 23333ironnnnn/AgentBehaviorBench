@@ -49,7 +49,7 @@ def execute_in_store(store, *, environ, selection=None, replay=False, command_id
                      on_tick=None, finalize=True):
     """Execute a fixed batch on its owning coordinator; later admissions wait for the next batch."""
     runner = runner or build_saved_runner(store.plan['configuration'], environ)
-    current = runner_configuration(runner)
+    current = runner_configuration(runner, store.registrations)
     store.validate_provenance(configuration=current if current is not None else store.plan['configuration'])
     if command_id:
         previous = [event for event in store.events if event.get('command_id') == command_id]
