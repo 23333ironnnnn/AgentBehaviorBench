@@ -121,6 +121,18 @@ class StrategyCheck:
 
 
 @runtime_checkable
+class SDKExecutionConfiguration(Protocol):
+    """Optional offline public provenance for SDK-owned execution, such as judging.
+
+    Return JSON-compatible settings without credentials. Resolve current defaults
+    with the same precedence as execution; do not perform network I/O.
+    """
+    def execution_configuration(
+        self, *, environ: Mapping[str, str], model: str | None, options: Mapping[str, object],
+    ) -> Mapping[str, object]: ...
+
+
+@runtime_checkable
 class SDKVersionInfo(Protocol):
     """Optional silent version/update metadata for host-owned presentation."""
     def version_info(self) -> Mapping[str, str | None]: ...

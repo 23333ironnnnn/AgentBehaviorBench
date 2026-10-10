@@ -135,7 +135,8 @@ def run_benchmark_once(
                 environ = getattr(getattr(runner, "_runner_factory", None), "environ", None)
                 from .sessions.configuration import runner_configuration
                 from .sessions.fresh import begin_result_log
-                saved_configuration = runner_configuration(runner)
+                saved_configuration = (runner_configuration(runner, agents)
+                                       if all(isinstance(agent, AgentRegistration) for agent in agents) else None)
                 if saved_configuration is not None and all(isinstance(agent, AgentRegistration) for agent in agents):
                     result_log = begin_result_log(output_path, suite_id, agents,
                         configuration=saved_configuration, environ=environ, results_dir=directory)

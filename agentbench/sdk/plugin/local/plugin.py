@@ -17,6 +17,14 @@ class LocalEvaluationSDK:
 
     execution = "container"
 
+    def execution_configuration(self, *, environ, model, options):
+        from .relay import judge_model
+        environment = dict(environ)
+        if model is not None:
+            environment['ABB_MODEL'] = model
+        judge = judge_model(environment)
+        return {'judge': {'base_url': judge.base_url, 'model': judge.model}}
+
     def version_info(self):
         return {'name': 'local', 'version': '0.0.1', 'latest_version': None}
 
