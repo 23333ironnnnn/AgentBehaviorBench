@@ -14,6 +14,7 @@ from importlib.metadata import version
 from agentbench.sdk.common.artifacts import Artifacts
 from agentbench.sdk.common.output_permissions import share_output
 from .runner import drive_run
+from .error_artifacts import exception_record
 from .configuration import SDK_REPOSITORY, request_options, api_key
 from .compatibility import run_case
 from agentbench.runtime.agentcontainer.session import AgentSession
@@ -242,10 +243,7 @@ async def _execute(root, output, settings=None, sdk_repo=None, *, providers=None
                      and summary['files'] in ('disabled', 'complete', 'partial')) else 1
     except Exception as exc:
         # Persist error details and return exit code 1 to the host.
-        files.save('error.json', {'phase': 'case_generation' if run is None else 'evaluation',
-                   'type': type(exc).__name__, 'message': str(exc), 'code': getattr(exc, 'code', None),
-                   'retryable': getattr(exc, 'retryable', None), 'client_request_id': getattr(exc, 'client_request_id', None),
-                   'request_id': getattr(exc, 'request_id', None)})
+        files.save('error.json', exception_record(exc, phase='case_generation' if run is None else 'evaluation'))
         return 1
     finally:
         # Always close the Agent session and save its final state.
@@ -323,8 +321,7 @@ def main(providers=None):
             settings['execution_environment'] = read_settings(environment_path)
     except EvaluationSettingsError as exc:
         # The host reads error.json; stderr alone only reaches diagnostics.json.
-        Artifacts(args.output).save('error.json', {
-            'phase': 'startup', 'type': type(exc).__name__, 'message': str(exc)})
+        Artifacts(args.output).save('error.json', exception_record(exc, phase='startup'))
         share_output(args.output)
         print(exc, file=sys.stderr, flush=True)
         return 1
@@ -338,8 +335,7 @@ def main(providers=None):
         # the interpreter the evaluation overlay installed into, so name it.
         traceback.print_exc()
         message = f'{exc} (interpreter {sys.executable})'
-        Artifacts(args.output).save('error.json', {
-            'phase': 'startup', 'type': type(exc).__name__, 'message': message})
+        Artifacts(args.output).save('error.json', {**exception_record(exc, phase='startup'), 'message': message})
         share_output(args.output)
         print(message, file=sys.stderr, flush=True)
         return 1

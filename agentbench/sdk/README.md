@@ -113,3 +113,17 @@ result. Historical Case selections remain separate from the current profile.
 
 See [SDK integration facilities](integration/README.md) for the plugin Protocols,
 Suite/Case/Attempt storage lifecycle, and the KUMA controller/Agent boundary.
+
+## SDK error diagnostics
+
+KUMA errors retain public JSON fields, including structured `details` and future
+SDK fields, in worker errors, execution manifests, generation attempt failures,
+and host diagnostics. Errors record their phase and current input ID when known.
+Private exception attributes and transport objects are not dumped. Credentials
+are redacted before persistence; immutable SDK mappings become ordinary JSON.
+
+Error snapshots have bounded size, item count, and nesting. Any truncation or
+unsupported value is explicitly recorded in `abb_diagnostic_omissions`. Full
+error messages are retained within that budget; the CLI uses a separate short
+summary with the phase, input ID, and a preview of the details. Saving diagnostics
+does not change SDK privacy decisions or authorize retrying a rejected request.
