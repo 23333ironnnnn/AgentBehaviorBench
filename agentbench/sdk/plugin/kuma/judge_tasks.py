@@ -54,10 +54,17 @@ def validate_execution(directory, case, *, task=None):
             or case_content_sha256(to_json(context.case)) != case.content_sha256
             or context.history[0].submission.run_id != summary.get('run_id')):
         raise ValueError('Judge context does not match the prepared Case and Run')
-    if (len(context.history) != len(summary['steps'])
-            or len(context.history) != len(context.case.inputs)):
+    if len(context.history) != len(summary['steps']):
         raise ValueError('Judge history is incomplete')
+    from .completion import validate_input_prefix
+    last = summary['steps'][-1]
+    validate_input_prefix(to_json(context.case), summary,
+                          read_diagnostic(directory, 'evaluation/' + last['directory'] + '/result.json'))
     relatives = [CONTEXT, 'evaluation/case.json', 'evaluation/process.json']
+    if summary.get('termination'):
+        if read_diagnostic(directory, 'evaluation/termination.json') != summary['termination']:
+            raise ValueError('Termination evidence does not match history')
+        relatives.append('evaluation/termination.json')
     for step, item in zip(summary['steps'], context.history):
         prefix = 'evaluation/' + step['directory']
         submission = read_diagnostic(directory, prefix + '/submission.json')
@@ -93,7 +100,7 @@ def prepare_task(directory, case, *, environ):
         'schema': 'abb.judge-task.v1', 'state': 'queued', 'queued_at': time.time(),
         'run_id': summary['run_id'], 'case_id': case.case_id,
         'attempt_id': host.get('attempt_id'), 'evidence_sha256': hashes})
-    return DeferredJudgment(directory)
+    return DeferredJudgment(directory, collect_artifacts(directory, host, environ=environ).get('dependency_failure'))
 
 
 class ControlledClient:

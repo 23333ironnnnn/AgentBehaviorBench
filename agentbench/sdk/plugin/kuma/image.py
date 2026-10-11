@@ -111,7 +111,7 @@ def evaluation_agent(agent, *, control=None, deadline=None, backend=DEFAULT_BASE
                                if (root / 'evaluation').is_dir() else '')
             profile_copy = ('COPY requirement.md /opt/agent/requirement.md\n'
                             if require_profile or (root / 'requirement.md').is_file() else '')
-            dockerfile.write_text(original + '\nUSER root\nCOPY .abb-sdk/ /opt/abb-sdk/\n'
+            dockerfile.write_text(original + '\nENV KUMA_DISABLE_UPDATE_CHECK=1\nUSER root\nCOPY .abb-sdk/ /opt/abb-sdk/\n'
                                  + SDK_INSTALL + profile_copy
                                  + evaluation_copy + 'USER ' + users[-1] + '\n', encoding='utf-8')
             check()

@@ -269,7 +269,7 @@ def evaluate(agent, *, output, environ, timeout=2400, trace_sink=None, trace_max
                     from .diagnostics import read_diagnostic
                     summary = read_diagnostic(directory, 'evaluation/manifest.json')
                     judge_only_failure = (
-                        summary.get('phase') == 'judge' and summary.get('execution') == 'succeeded'
+                        summary.get('phase') == 'judge' and summary.get('execution') in ('succeeded', 'failed')
                         and summary.get('otel') == 'complete' and summary.get('submission') == 'committed'
                         and summary.get('evidence') == 'captured')
                     if code == 0 or judge_only_failure:

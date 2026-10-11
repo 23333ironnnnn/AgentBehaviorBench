@@ -127,7 +127,7 @@ async def _execute(root, output, settings=None, sdk_repo=None, *, providers=None
                                       case_options=providers.case_options)
                 collection = generate_collection(
                     create_run, count=settings['count'], files=files, repo=repository,
-                    workspace=settings.get('workspace'),
+                    workspace=settings.get('workspace'), max_attempts=5,
                     case_indices=settings.get('case_indices'), allow_partial=settings.get('allow_partial', False),
                     **generation)
             complete = not collection['failures'] and not collection['unattempted_indices']
@@ -150,7 +150,9 @@ async def _execute(root, output, settings=None, sdk_repo=None, *, providers=None
         if deferred:
             judge = {'judge': False}
         with span('Load prepared Case', kind='sdk'):
-            run = create_run(case_path=settings['case_artifact'], **options, **judge)
+            # ACP closes failed sessions; never submit later inputs to that dead process.
+            failure_policy = {'on_failure': 'stop'} if manifest['framework'] == 'acp' else {}
+            run = create_run(case_path=settings['case_artifact'], **options, **judge, **failure_policy)
 
 
         if workspace.export_changed_files:
@@ -221,7 +223,7 @@ async def _execute(root, output, settings=None, sdk_repo=None, *, providers=None
         # independently of whether the Judge verdict is pass.
         return 0 if (summary['judge'] == 'received' and summary['otel'] == 'complete'
                      and summary['evidence'] == 'captured'
-                     and summary['execution'] == 'succeeded'
+                     and summary['execution'] in ('succeeded', 'failed')
                      and summary['files'] in ('disabled', 'complete', 'partial')) else 1
     except Exception as exc:
         # Persist error details and return exit code 1 to the host.

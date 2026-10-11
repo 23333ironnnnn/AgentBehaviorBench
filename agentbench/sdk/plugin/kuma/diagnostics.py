@@ -134,8 +134,9 @@ def collect_artifacts(directory, host, *, environ=None):
         if not isinstance(step, dict) or not isinstance(step.get('directory'), str):
             continue
         native = read_diagnostic(directory, f"evaluation/{step['directory']}/result.json")
-        if native.get('status') in ('failed', 'timeout'):
-            result['native_failure'] = {key: _text(native.get(key)) for key in ('status', 'error_type', 'error')}
+        if native.get('status') in ('failed', 'timeout', 'cancelled', 'aborted'):
+            result['native_failure'] = {key: _text(native.get(key)) for key in ('status', 'error_type', 'error', 'error_code', 'dependency_host', 'http_status', 'retry_after')}
+            result['native_failure']['input_id'] = _text(step.get('input_id'))
             break
     report = read_diagnostic(directory, 'evaluation/judge/report.json')
     case = read_diagnostic(directory, 'evaluation/case.json')
@@ -185,6 +186,8 @@ def collect_artifacts(directory, host, *, environ=None):
                 continue
             if any(host.get(k) is not None and data.get(k) not in (None, host[k]) for k in ('job_id', 'case_id')):
                 continue
+            if _sdk_background_request(data):
+                continue
             # These are related observations, not a claim that the last error
             # caused the SDK exception. The two channels keep their own codes.
             detail = {key: _text(data.get(key)) for key in (
@@ -197,6 +200,10 @@ def collect_artifacts(directory, host, *, environ=None):
             result['related_network_errors'] = related[-3:]
     except (OSError, ValueError, RuntimeError):
         pass
+    from .dependencies import dependency_failure
+    dependency = dependency_failure(result.get('native_failure'))
+    if dependency is not None:
+        result['dependency_failure'] = dependency
     from .recovery import classify_failure
     result['recovery'] = classify_failure(result)
     return redact(result, files.secrets)
@@ -213,7 +220,7 @@ def failure_message(artifacts):
             # so no related network event names the Backend; the SDK's own record does.
             parts.append(f"KUMA backend: {artifacts['sdk_base_url']}")
     if native := artifacts.get('native_failure'):
-        parts.append(f"Agent {native.get('error_type') or native.get('status')}: {native.get('error') or 'No error details recorded'}")
+        parts.append(f"Agent {(native.get('input_id') + ' ') if native.get('input_id') else ''}{native.get('error_type') or native.get('status')}: {native.get('error') or 'No error details recorded'}")
     for item in artifacts.get('related_network_errors', ()):
         parts.append(f"related network: {item.get('error_code') or 'unclassified'} "
                      f"{item.get('method') or ''} {item.get('host') or ''}{item.get('path') or ''}: {item.get('error') or ''}")
@@ -230,3 +237,19 @@ def evaluation_failure(directory, message, *, environ=None):
     error = RuntimeError(f'{message}: {directory}' + (f' — {detail}' if detail else ''))
     error.artifacts = artifacts
     return error
+
+
+
+def _sdk_background_request(data):
+    """Exclude only the SDK update probe, never model/tool/backend traffic."""
+    from urllib.parse import urlsplit
+    host = data.get('source_host') or data.get('host')
+    path = data.get('source_path') or data.get('path')
+    if not isinstance(path, str):
+        return False
+    for rule in json.loads(Path(__file__).with_name('whitelist.json').read_text()):
+        target = urlsplit(rule['url'])
+        if (host == target.hostname and path.split('?', 1)[0] == target.path
+                and data.get('method') in rule.get('methods', [])):
+            return True
+    return False
