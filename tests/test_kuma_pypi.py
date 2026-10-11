@@ -464,7 +464,11 @@ def test_real_pypi_overlay_and_offline_case_judge(echo_agent):
     (output / 'container.log').write_text(result.stdout + result.stderr, encoding='utf-8')
     assert result.returncode == 0, f'See {output / "container.log"}'
     package = json.loads((output / 'package.json').read_text())
-    assert 'kuma-defuzex[otel]' in requirements.splitlines()
+    from packaging.requirements import Requirement
+    sdk_requirement = next(Requirement(line) for line in requirements.splitlines()
+                           if line.startswith('kuma-defuzex'))
+    assert 'otel' in sdk_requirement.extras
+    assert package['version'] in sdk_requirement.specifier
     expected_version = package['version']
     assert expected_version
     assert package['adapter'] == 'agentbench.sdk.plugin.kuma.plugin:plugin'

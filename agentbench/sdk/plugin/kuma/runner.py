@@ -133,7 +133,19 @@ async def drive_run(run, invoke, directory, *, provider, repo_path=None, file_ev
                             'trace_summary': {key: evidence.get(key) for key in ('reasons', 'missing', 'dropped_count')}
                                              if isinstance(evidence, dict) else None})
                     files.save('manifest.json', summary)
+        # SDK on_failure=stop completes the committed prefix without invoking
+        # later inputs. Preserve the original Case and explicitly name the rest.
+        from .diagnostics import read_diagnostic
+        case = read_diagnostic(directory, 'case.json')
+        inputs = case.get('inputs', [])
+        if summary['steps'] and len(summary['steps']) < len(inputs):
+            summary['termination'] = {'input_id': summary['steps'][-1]['input_id'],
+                                      'status': result['status'], 'reason': 'session_unusable'}
+            summary['unexecuted_inputs'] = [item['input_id'] for item in inputs[len(summary['steps']):]]
+            files.save('termination.json', summary['termination'])
         summary['phase'] = 'judge'
+        if not defer_judge and run.report is None and run.state == 'completed':
+            run.judge()
         if defer_judge:
             summary['judge'] = 'queued'
             summary['phase'] = 'judge_queued'

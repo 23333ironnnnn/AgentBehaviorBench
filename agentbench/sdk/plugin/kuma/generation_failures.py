@@ -32,3 +32,27 @@ def failure_record(error, case_index, *, repo=None):
 def blocks_generation(error):
     """Stop new slots on a shared block, without retrying the failed request."""
     return getattr(error, 'code', None) in SHARED_GENERATION_BLOCKS
+
+
+# These codes reject the generated candidate, not the supplied Agent Profile.
+# A new candidate is permitted even when retryable=False describes the old request.
+REGENERATABLE_CANDIDATES = frozenset({
+    'model_invalid_result', 'model_invalid_response', 'model_output_policy_conflict',
+    'model_output_privacy_rejected', 'invalid_response',
+})
+
+
+def may_regenerate(failure):
+    """Never replace an accepted or unknown request merely because it timed out."""
+    request = failure.get('request') or {}
+    if request.get('status') in {'prepared', 'queued', 'running', 'succeeded'}:
+        return False
+    # If a public ledger ID exists but inspection failed, its state is unknown.
+    if failure.get('client_request_id') and not request:
+        return False
+    code = failure.get('code')
+    if code in REGENERATABLE_CANDIDATES:
+        return True
+    return (failure.get('retryable') is True and request.get('status') == 'failed'
+            and code in {'network_error', 'network_timeout', 'service_busy',
+                         'rate_limited', 'upstream_unavailable', 'capacity_exceeded'})
