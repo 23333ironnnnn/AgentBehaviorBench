@@ -518,3 +518,13 @@ framework = "langgraph"
 source = "https://github.com/seanlxh/Air-Lingjing"
 case = 1
 step = 3
+
+[[agents]]
+agent_id = "langgraph-email-automation"
+path = "resources/agents/53-langgraph-email-automation"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/kaymen99/langgraph-email-automation"
+case = 1
+step = 1
