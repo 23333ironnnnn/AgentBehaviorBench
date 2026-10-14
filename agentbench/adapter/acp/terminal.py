@@ -82,6 +82,13 @@ class Terminals:
         self.emit('terminal_exited', {'terminal_id': identifier, **terminal.status()})
         return WaitForTerminalExitResponse(**terminal.status())
 
+    async def snapshot_all(self):
+        # Read already running terminals; never wait for a process or execute it again.
+        for identifier in tuple(self.items):
+            result = await self.output(identifier)
+            self.emit('terminal_output', {'terminal_id': identifier,
+                **result.model_dump(mode='json', by_alias=True, exclude_none=True)})
+
     async def kill(self, identifier):
         await terminate_group(self.get(identifier).process, self.config.cleanup_timeout)
         return KillTerminalResponse()

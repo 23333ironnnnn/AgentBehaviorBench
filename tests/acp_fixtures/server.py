@@ -35,6 +35,7 @@ for line in sys.stdin:
     method, params = request.get('method'), request.get('params', {})
     ident = request.get('id')
     if method == 'initialize':
+        capabilities = params.get('clientCapabilities', {})
         send({'id': ident, 'result': {'protocolVersion': 1, 'agentCapabilities': {},
                                     'authMethods': [{'id': 'test', 'name': 'Test login'}]}})
     elif method == 'authenticate':
@@ -46,6 +47,33 @@ for line in sys.stdin:
     elif method == 'session/prompt':
         turn += 1
         text = params['prompt'][0]['text']
+        if text == 'terminal-reference':
+            term = call('terminal/create', command=sys.executable,
+                        args=['-c', "import sys; print('SQL syntax error'); sys.exit(7)"])['terminalId']
+            tool(sessionUpdate='tool_call', toolCallId='terminal-tool', title='SQL command',
+                 status='in_progress', rawInput={'command': 'SQL command'},
+                 content=[{'type': 'terminal', 'terminalId': term}])
+            call('terminal/wait_for_exit', terminalId=term)
+            # Complete before release, without requesting terminal/output.
+            tool(sessionUpdate='tool_call_update', toolCallId='terminal-tool', status='failed')
+            call('terminal/release', terminalId=term)
+            notify('Command failed')
+            send({'id': ident, 'result': {'stopReason': 'end_turn'}})
+            continue
+        if text == 'terminal-meta':
+            assert capabilities.get('_meta', {}).get('terminal_output') is True
+            tool(sessionUpdate='tool_call', toolCallId='meta-tool', title='Remote command',
+                 status='in_progress', rawInput={'command': 'remote-command'},
+                 content=[{'type': 'terminal', 'terminalId': 'remote-terminal'}],
+                 _meta={'terminal_info': {'terminal_id': 'remote-terminal'}})
+            for chunk in ('first\n', 'second\n'):
+                tool(sessionUpdate='tool_call_update', toolCallId='meta-tool',
+                     _meta={'terminal_output': {'terminal_id': 'remote-terminal', 'data': chunk}})
+            tool(sessionUpdate='tool_call_update', toolCallId='meta-tool', status='failed',
+                 _meta={'terminal_exit': {'terminal_id': 'remote-terminal', 'exit_code': 143, 'signal': None}})
+            notify('Remote command failed')
+            send({'id': ident, 'result': {'stopReason': 'end_turn'}})
+            continue
         if text == 'callbacks':
             tool(sessionUpdate='tool_call', toolCallId='t1', title='Write file', status='pending')
             outcome = call('session/request_permission', toolCall={'toolCallId': 't1', 'title': 'Write file'},
