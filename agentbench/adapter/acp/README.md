@@ -36,3 +36,7 @@ and `aclose()` release the process group and loop; callers must close the adapte
 execution limits do not become successful results. A lost response is not evidence
 that replay is safe. Protocol callbacks use the local `on_acp_event(name, data)`
 observer seam; callback objects never cross the ACP wire.
+
+Terminal references and the advertised `terminal_output` metadata extension are
+resolved into tool evidence. See [ACP terminal evidence](../../observe/acp_evidence/README.md)
+for the source Protocol, extension registry, limits and offline acceptance.

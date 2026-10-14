@@ -7,6 +7,7 @@ from acp.schema import ClientCapabilities, FileSystemCapabilities, Implementatio
 from .client import ACPClient, plain
 from .errors import ACPError, AgentAborted
 from .process import child_environment, terminate_group
+from agentbench.observe.acp_evidence import terminal_capabilities
 
 
 class ACPSession:
@@ -37,7 +38,8 @@ class ACPSession:
         self.conn = connect_to_agent(self.client, self.process.stdin, self.process.stdout)
         initialized = await self.conn.initialize(
             protocol_version=PROTOCOL_VERSION, client_capabilities=ClientCapabilities(
-                fs=FileSystemCapabilities(read_text_file=True, write_text_file=True), terminal=True),
+                fs=FileSystemCapabilities(read_text_file=True, write_text_file=True), terminal=True,
+                field_meta=terminal_capabilities()),
             client_info=Implementation(name='agentbench', version='0.1.0'))
         if initialized.protocol_version != PROTOCOL_VERSION:
             raise ACPError('Unsupported ACP protocol version', phase='initialize')
@@ -84,6 +86,7 @@ class ACPSession:
                 raise self.client.error
             if self.drain_task.done() and self.drain_task.exception():
                 raise self.drain_task.exception()
+            await self.client.terminals.snapshot_all()
             self.read_native_evidence()
             self.emit('prompt_completed', plain(response))
             stop = response.stop_reason
@@ -96,6 +99,10 @@ class ACPSession:
                     'stop_reason': stop, 'prompt_response': plain(response)}
         except BaseException as exc:
             try:
+                try:
+                    await self.client.terminals.snapshot_all()
+                except BaseException:
+                    pass  # A snapshot failure must not replace the native error.
                 self.emit('failure', {'type': type(exc).__name__, 'message': str(exc),
                                       'code': getattr(exc, 'code', None)})
             finally:
