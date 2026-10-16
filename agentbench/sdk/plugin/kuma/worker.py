@@ -83,7 +83,9 @@ async def _execute(root, output, settings=None, sdk_repo=None, *, providers=None
         settings = dict(settings or {})
         if settings.get('isolated_agent'):
             from agentbench.sdk.integration.channel import DirectoryAgentSession
-            agent_session = DirectoryAgentSession(timeout=settings.get('agent_timeout', 2400))
+            from agentbench.sdk.integration.context import ResponseLimits
+            agent_session = DirectoryAgentSession(timeout=settings.get('agent_timeout', 2400),
+                response_limits=ResponseLimits(**settings.get('agent_response_limits', {})))
         else:
             agent_session = AgentSession()
     try:
