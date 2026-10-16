@@ -58,6 +58,16 @@ session for the Case. Only Agent response files flow back, with bounded copying
 that rejects links and special files. Neither container receives a Docker socket.
 The Agent also does not receive plugin worker credentials.
 
+Each invocation has a default response-copy budget of 1 GiB and 20,000 entries,
+including full framework traces and OTel payloads. Large graph state can exceed
+the former 128 MiB budget without an unusually large final answer. Configure
+`ABB_AGENT_RESPONSE_MAX_BYTES` and `ABB_AGENT_RESPONSE_MAX_FILES` in the host
+environment (or CLI `.env`) as positive integers. The trusted controller records
+the effective limits in `request/evaluation.json`; these are independent of SDK
+submission limits. Copying streams to disk and publishes each file only after
+completion. Exceeding a budget still fails explicitly, without truncating evidence
+into an apparently complete file or accepting links/special files.
+
 Private writable roots start at mode 0700. Published Case roots retain host
 ownership with group write access for the controller, so the host can create
 subsequent Attempt directories. The controller uses Python isolated imports

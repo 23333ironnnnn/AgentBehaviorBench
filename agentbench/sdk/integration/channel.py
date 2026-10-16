@@ -1,24 +1,21 @@
 """Trusted controller client; mailbox contains current inputs and Agent outputs only."""
 import asyncio
 import json
+import tempfile
 import time
 from pathlib import Path
 
 from agentbench.observe.store import atomic_json
-from .context import REQUESTS, RESPONSES
+from .context import REQUESTS, RESPONSES, ResponseLimits
 from .telemetry import decode_span
 
-# Finite transport budget, independent of SDK evidence retention budgets.
-MAX_BYTES = 128 * 1024 * 1024
-MAX_FILES = 20000
-
-
-def collect_response(source, destination):
+def collect_response(source, destination, *, limits=None):
     # All reads are relative to held directory descriptors. O_NOFOLLOW and
     # O_NONBLOCK reject symlink swaps and FIFOs created by an Agent, including
     # while copying. This client runs in the Linux controller container.
     import os
     import stat
+    limits = limits or ResponseLimits()
     total, count = 0, 0
     flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
 
@@ -26,8 +23,8 @@ def collect_response(source, destination):
         nonlocal total, count
         for name in os.listdir(fd):
             count += 1
-            if count > MAX_FILES:
-                raise ValueError('Agent response exceeds file transport limit')
+            if count > limits.max_files:
+                raise ValueError(f'Agent response exceeds file transport limit ({limits.max_files})')
             current = relative / name
             if current.parts[0] in ('done.json', 'input.json', 'request.json',
                                     'context.json', 'mapped-input.json'):
@@ -38,14 +35,27 @@ def collect_response(source, destination):
                 if stat.S_ISDIR(info.st_mode):
                     visit(handle, current)
                 elif stat.S_ISREG(info.st_mode):
+                    def byte_limit():
+                        return ValueError('Agent response exceeds transport byte limit '
+                                          f'({limits.max_bytes} bytes; file {current})')
+                    if total + info.st_size > limits.max_bytes:
+                        raise byte_limit()
                     target = destination / current
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    with target.open('wb') as stream:
-                        while block := os.read(handle, 65536):
-                            total += len(block)
-                            if total > MAX_BYTES:
-                                raise ValueError('Agent response exceeds transport byte limit')
-                            stream.write(block)
+                    # Publish only complete files, even if a producer grows a
+                    # response after fstat or the copy encounters an I/O error.
+                    stream = tempfile.NamedTemporaryFile(dir=target.parent, delete=False)
+                    temporary = Path(stream.name)
+                    try:
+                        with stream:
+                            while block := os.read(handle, 65536):
+                                total += len(block)
+                                if total > limits.max_bytes:
+                                    raise byte_limit()
+                                stream.write(block)
+                        temporary.replace(target)
+                    finally:
+                        temporary.unlink(missing_ok=True)
                 else:
                     raise ValueError('Agent response contains a special file')
             finally:
@@ -82,9 +92,11 @@ def read_completion(folder):
 
 
 class DirectoryAgentSession:
-    def __init__(self, *, timeout=2400, requests=Path(REQUESTS), responses=Path(RESPONSES)):
+    def __init__(self, *, timeout=2400, requests=Path(REQUESTS), responses=Path(RESPONSES),
+                 response_limits=None):
         self.requests, self.responses = Path(requests), Path(responses)
         self.timeout = timeout
+        self.response_limits = response_limits or ResponseLimits()
         self.sequence = 0
         self.closed = False
         self.state = {'invocations': 0, 'closed': False}
@@ -115,7 +127,7 @@ class DirectoryAgentSession:
         if self.closed:
             raise RuntimeError('Isolated Agent session is closed')
         folder = await self._exchange(dict(envelope), self.timeout)
-        collect_response(folder, output)
+        collect_response(folder, output, limits=self.response_limits)
         result = json.loads((output / 'result.json').read_text(encoding='utf-8'))
         if result.get('run_id') != envelope['run_id']:
             raise ValueError('Agent result belongs to a different invocation')

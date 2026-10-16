@@ -178,6 +178,21 @@ cache reset.
 
 ## Generation, native aborts and dependency waits
 
+`dictionary changed size during iteration` in `TraceCallback.on_chain_end` can
+come from a parallel graph extending shared state while the observer serializes
+it. Current observation code snapshots dictionary entries before recursively
+converting values. Run with the current ABB container build; this historical
+observer failure is not evidence of an Agent defect.
+
+`Agent response exceeds transport byte limit` concerns the whole per-Input
+response directory, including framework traces and OTel payloads. It does not
+refer only to the final answer or to an API token quota. The default is 1 GiB;
+set `ABB_AGENT_RESPONSE_MAX_BYTES` to a positive byte count in the host environment
+or `.env` if a different budget is needed. `ABB_AGENT_RESPONSE_MAX_FILES` defaults
+to 20,000. Effective limits are saved in `request/evaluation.json`. Copies remain
+streamed, bounded and checked for links/special files. An over-limit response
+fails explicitly; partial copies must not be treated as complete evidence.
+
 Case generation makes at most five total attempts per rejected candidate slot.
 Successfully saved Cases keep their original indices. Each attempt is recorded in
 `case-collection.json`; after the fifth failure the remaining slots for that Agent

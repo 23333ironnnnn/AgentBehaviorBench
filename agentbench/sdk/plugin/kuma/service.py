@@ -162,6 +162,8 @@ def evaluate(agent, *, output, environ, timeout=2400, trace_sink=None, trace_max
                              generation_indices if generation_indices is not None else
                              (tuple(range(generation_count)) if generation_count is not None else None))
     directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+    from agentbench.sdk.integration.context import ResponseLimits
+    response_limits = ResponseLimits.from_environ(environ)
     files = Artifacts(directory, environ=environ)
     with timing_session(directory / 'timing.jsonl', source='host', name='Evaluation',
                         identity={**dict(job_context or {}), **dict(identity or {}), 'agent_id': agent.agent_id}) as timing_root:
@@ -272,6 +274,8 @@ def evaluate(agent, *, output, environ, timeout=2400, trace_sink=None, trace_max
                                                      for index, _ in publications}
                 settings.update(private_storage='/run/abb-sdk-storage',
                                 isolated_agent=channel is not None, agent_timeout=timeout)
+                settings['agent_response_limits'] = {
+                    'max_bytes': response_limits.max_bytes, 'max_files': response_limits.max_files}
                 files.save('request/evaluation.json', settings)
                 runtime_options = dict(
                     environ=environ, policy=EvaluationPolicy(state, repository=repository, target=target, writable=bool(policy.path), replay=replay_directory, channel=channel, publications=publications), trace_sink=Sink(),

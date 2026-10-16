@@ -17,7 +17,11 @@ def json_value(value):
     if value is None or isinstance(value, (str, bool, int, float)):
         return value
     if isinstance(value, Mapping):
-        return {str(k): json_value(v) for k, v in value.items()}
+        # Parallel graph branches can extend shared dictionaries while recursive
+        # value conversion yields. Snapshot entries before traversing values;
+        # never let a tracing callback turn that into an Agent execution error.
+        items = dict.copy(value).items() if isinstance(value, dict) else tuple(value.items())
+        return {str(k): json_value(v) for k, v in items}
     if is_dataclass(value) and not isinstance(value, type):
         return {f.name: json_value(getattr(value, f.name)) for f in fields(value)}
     if isinstance(value, (list, tuple)):
