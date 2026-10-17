@@ -5,6 +5,105 @@ contracts, artifact storage, and the trusted execution client live here. SDK
 formats and SDK calls belong in `sdk/plugin/<name>/`; Docker processes, ownership,
 mounts and the Agent endpoint belong in `runtime/`.
 
+## Reuse the existing plugin contracts
+
+An SDK still exports an `EvaluationSDKPlugin` from
+`sdk/plugin/<name>/plugin.py`. Its `create_benchmark_runner(context, options)`
+returns an `EvaluationRunner` with `validate_sdk`, `prepare_cases` and `run_case`.
+There is no additional registration API or required base class. Optional Case
+batch preparation, deferred judging and recovery retain their existing contracts.
+
+Container plugins can now reuse the same execution implementation as KUMA:
+
+- `runtime/docker/evaluation_image.py::evaluation_image` stages the controller
+  image and installs the plugin's `requirements.txt`. Plugins declare their worker
+  module, worker environment names, required/optional documents and any manifest
+  changes for their network routes. No Profile filename or vendor SDK is required.
+- `integration/execution.py::run_evaluation` receives the existing
+  `SDKRunnerContext` and owns workspace preparation, private storage, the two
+  container processes, trace validation, cancellation, diagnostics and cleanup.
+- `integration/agent.py::ManagedAgentSession` implements the existing
+  `AgentExecutionSession` protocol. It manages invocation artifacts and session
+  cleanup while forwarding original spans to the plugin's `EvidenceSink`.
+
+For example, the host side of an existing runner's `run_case` can use:
+
+```python
+from functools import partial
+from pathlib import Path
+from agentbench.runtime.docker.evaluation_image import evaluation_image
+from agentbench.sdk.integration.execution import run_evaluation
+
+stage = partial(
+    evaluation_image,
+    requirements=Path(__file__).with_name("requirements.txt"),
+    worker_module=__package__ + ".worker",
+)
+directory = run_evaluation(
+    registration,
+    context=self.context,  # SDKRunnerContext received by the plugin factory
+    output=self.output,
+    stage_agent=stage,
+    settings={"case_file": "cases/current.json"},  # This SDK's own settings
+    private_files={"cases/current.json": case.artifact_path},
+    expected_environment_sha256=case.environment_sha256,
+)
+# Validate run.json and the SDK's saved report, then return BenchmarkResult.
+```
+
+The scheduler-provided `context.job_context` identifies the Case and Attempt.
+`context.artifacts` places outputs in that Attempt; without a store the helper
+allocates a new directory under `output`. Explicit `context.model` overrides the
+environment's Agent model selection without mutating the caller's environment.
+Returning an artifact directory is not proof of execution success or a Judge pass.
+The plugin remains responsible for interpreting its report and any SDK errors.
+
+For Case generation use `execute_agent=False` and pass `generation_indices` when
+the slots are known. Only the controller starts. Case publication remains through
+the existing `ArtifactStore` / `CaseArtifacts` protocols. Private file paths are
+relative to controller-only storage; they may hold Cases, configuration or judge
+data. They never become Agent mounts. A supplied workspace digest is checked before
+execution. SDKs requiring a digest for every saved Case additionally set
+`require_workspace_identity=True`; private configuration alone does not imply replay.
+
+Inside the worker, use the existing envelope and evidence contracts:
+
+```python
+from agentbench.sdk.integration.agent import ManagedAgentSession
+
+async with ManagedAgentSession(output=output, settings=settings) as agent:
+    result = await agent.invoke(envelope, step_directory, evidence_sink)
+    # Submit result to this SDK while its current-input capture window is open.
+```
+
+`envelope` is the normal `abb.invocation.v1` request with a unique invocation
+`run_id`, a Case-wide `session_id`, `agent_id`, `framework`, current `input` and
+optional `observation_context`. `evidence_sink` implements `accept_span(span)`;
+it receives original transported spans before `invoke` returns. The same session
+is reused across all inputs. It saves request/result files plus the final session
+snapshot and closes even when a turn fails. Custom sessions can be injected with
+`session=...` using `AgentExecutionSession`; explicit in-process fixtures use
+`InProcessAgentSession`. Production workers must require isolated execution.
+
+Workers still own SDK initialization, input/submission sequencing, report format
+and exit status. Publish read access to their output and private storage in a
+`finally` block using `sdk.common.output_permissions.share_output`, including on
+startup failure. Keep credentials in the declared worker environment, not request
+JSON. The shared host excludes those environment names from the Agent process.
+
+See `tests/test_sdk_execution.py` and `tests/sdk_fixtures/independent_worker.py` for
+a complete two-turn SDK using these facilities without importing KUMA. The
+credential-free Docker acceptance rejects KUMA imports and retains its original
+Case, Agent output, spans and Judge result under `results/verification/independent-sdk-*`:
+
+```bash
+ABB_INDEPENDENT_SDK_IMAGE=<existing-local-image> python -m pytest -q -s tests/test_sdk_execution.py
+```
+
+The local Linux image must contain ABB's runtime dependencies, LangGraph,
+OpenTelemetry and a non-root `agent` user. The acceptance inspects the image first
+and does not download dependencies or call an external model or Judge.
+
 ## Persistent artifacts
 
 The CLI creates the Suite before dispatch. It supplies a `FileArtifactStore`
