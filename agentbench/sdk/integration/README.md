@@ -5,9 +5,143 @@ contracts, artifact storage, and the trusted execution client live here. SDK
 formats and SDK calls belong in `sdk/plugin/<name>/`; Docker processes, ownership,
 mounts and the Agent endpoint belong in `runtime/`.
 
+## Default worker and runner: four business operations
+
+Ordinary SDKs do not need their own runner or worker. Export the concrete
+`ContainerSDKPlugin`, which implements the existing `EvaluationSDKPlugin` and
+creates the default `EvaluationRunner`. It loads a factory implementing the
+existing `SDK.create_run` / `SDKRun` contracts inside the controller container.
+
+Minimal package under `agentbench/sdk/plugin/my_sdk/`:
+
+```text
+__init__.py
+plugin.py
+backend.py
+requirements.txt
+```
+
+`plugin.py` contains only a declaration; importing it never imports the vendor SDK:
+
+```python
+from pathlib import Path
+from agentbench.sdk.integration.plugin import ContainerSDKPlugin
+
+plugin = ContainerSDKPlugin(
+    create_run=__package__ + ".backend:create_run",
+    requirements=Path(__file__).with_name("requirements.txt"),
+)
+```
+
+Declare SDK-specific inputs with `documents=("requirement.md",)`, credential
+names with `worker_environment=("MY_SDK_API_KEY",)`, and network routes with
+`whitelist=Path(__file__).with_name("whitelist.json")` when needed. These reuse
+the existing image environment and URL whitelist facilities. There is no required
+Profile format. Credentials stay in environment variables, outside Case/settings
+JSON. Select the package with `agentbench evaluate <agent_id> --sdk my_sdk`.
+
+The SDK business boundary has four operations:
+
+| Operation | Existing contract and responsibility |
+| --- | --- |
+| Generate/load a Case | `create_run(case=None, ...)` generates; `create_run(case=snapshot, ...)` restores exactly that Case. |
+| Get current input | `run.get_input(full=True)` returns `SDKTestInput`, or `None` when finished. |
+| Submit this turn | `run.submit(output=..., status=..., error=...)` advances SDK-owned state. |
+| Judge | `run.judge()` returns `SDKReport`. An existing `run.report` or final submit return avoids a second Judge call. |
+
+The factory receives `repo_path`, `agent_root`, `storage_path`, `case_index`,
+`evidence` and SDK-owned options. `storage_path` is writable controller-private
+storage for SDK logs/state; it is separate from the tracked workspace. Runner
+options `output` and `timeout` are handled by ABB; remaining `--sdk-options` JSON
+keys are forwarded to the factory, including the shared `max_steps` limit.
+It returns a Run exposing the existing ID/state/history/report
+fields, plus the public `case` generation snapshot. The existing `SDKRun`
+declaration now includes `case` and `judge`; custom legacy runners can continue
+using their previous get_input/submit/report subset. No parallel Protocol was added.
+
+`integration/run.py` supplies optional concrete `Run`, `Input` and `Report`
+implementations. For fixed-input Cases, `Run` already implements get_input and
+submit, including submission history. This complete offline `backend.py` only
+needs generation and judging:
+
+```python
+from agentbench.sdk.integration.run import Run, Report
+
+class EchoRun(Run):
+    def judge(self):
+        outputs = [step["output"] for step in self.history]
+        return Report("pass" if outputs == self.case["expected"] else "issue")
+
+def create_run(*, case=None, case_index=0, evidence=None, **context):
+    if case is None:
+        # Replace this example with the SDK's generator. context includes the
+        # source/workspace path, Agent document root, and SDK request options.
+        case = {
+            "case_id": f"echo-{case_index}",
+            "inputs": [{"input_id": "1", "payload": "hello"}],
+            "expected": ["hello"],
+        }
+    return EchoRun(case, evidence=evidence)
+```
+
+The included `smoke` plugin is a runnable two-turn example using these defaults.
+It asks the Agent to remember a marker, then recall it in the same session.
+Case generation and the exact-match Judge run locally; the selected Agent may
+make paid model requests, including its own auxiliary requests:
+
+```bash
+agentbench evaluate minimax-code --sdk smoke --cases 1 --max-steps 2 --case-retries 0 --no-view --yes
+```
+
+This example requires an onboarded MiniMax Agent and its configured credentials.
+See `sdk/plugin/smoke/backend.py` for the only two business methods and
+`sdk/plugin/smoke/plugin.py` for the worker/runner declaration.
+
+SDKs with adaptive inputs override get_input and submit, keeping mutable dialogue
+state separate from `run.case`. The public snapshot must be a JSON object with a
+non-empty `case_id`; its remaining contents belong to the SDK. It must not change
+when loaded or during execution. Only the current `SDKTestInput.payload` is sent
+to the Agent, with the same Agent session across turns. Neither the complete Case
+nor expected answers are mounted in the Agent container. Use `None`, rather than
+an empty/falsy test, to distinguish generation from loading a supplied Case.
+
+The default worker saves each generated Case before proceeding to the next. A
+committed publication is reused without generating again; incomplete or modified
+publications fail for reconciliation. Its artifact envelope binds the SDK factory,
+Case slot and workspace. The runner uses the existing `PreparedCase` and artifact
+store and validates identity, submitted outputs, trace acceptance and cleanup
+before returning `BenchmarkResult`. A Judge pass does not erase Agent failures.
+
+`run.evidence` on the convenience Run points to recorded step directories and
+provides `spans()`, which reads original transported OTel spans. A factory may
+instead keep this supplied evidence object in its own SDK Run. SDKs decide how
+to consume it in submit/judge; no vendor capture schema is required. Execution
+errors and partial artifacts remain on disk. The default implementation does not
+retry uncertain SDK requests or resume a partially completed dialogue. Persistence
+of adaptive inputs provides an audit trail, not a claim of deterministic replay.
+Before a generation call it writes a durable start marker in the Case slot. If
+no committed Case follows, later preparation stops for SDK request reconciliation
+instead of calling generation again. SDK-specific reconciliation belongs in the
+plugin; clearing uncertainty is not inferred from an exception or retryable flag.
+An optional Run `close()` releases SDK resources after generation or execution.
+
+KUMA uses the same public loop in `integration/dialogue.py` with a plugin-owned
+step transaction. Its capture window, submission ledger, file evidence, deferred
+Judge and request recovery remain in `plugin/kuma/`. Existing custom workers and
+runners remain supported for such SDK-specific lifecycle requirements.
+
+`tests/sdk_fixtures/default_sdk.py` demonstrates all four business operations,
+including an input generated from the preceding Agent output. The full acceptance
+uses the default worker and runner, rejects KUMA imports, and preserves Case,
+Agent outputs, original spans and Judge result:
+
+```bash
+ABB_DEFAULT_SDK_IMAGE=<existing-local-image> python -m pytest -q -s tests/test_sdk_defaults.py::test_default_sdk_real_containers
+```
+
 ## Reuse the existing plugin contracts
 
-An SDK still exports an `EvaluationSDKPlugin` from
+An advanced adapter may still export its own `EvaluationSDKPlugin` from
 `sdk/plugin/<name>/plugin.py`. Its `create_benchmark_runner(context, options)`
 returns an `EvaluationRunner` with `validate_sdk`, `prepare_cases` and `run_case`.
 There is no additional registration API or required base class. Optional Case
