@@ -93,6 +93,7 @@ for installation inputs and manual source prerequisites.
 - [Understanding the Agent registry](docs/Registry.md) — `registry.toml` fields, Agent selection, and Case budgets.
 - [How to add an Agent](docs/How%20To%20Add%20Agent.md)
 - [CLI reference](docs/cli.md)
+- [Native cases and independent Judges (no KUMA required)](docs/Native-Cases.md)
 - [How to start ABB](docs/Guide.md)
 
 ## Evaluation SDK and Judge
