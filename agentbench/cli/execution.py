@@ -41,6 +41,7 @@ def run_benchmark_session(
     llm_activity: LLMActivity | None = None,
     input_fn: Callable[[str], str] = input,
     results_dir: str | Path | None = None,
+    after_suite: Callable | None = None,
 ) -> BenchmarkExecution:
     """
 
@@ -54,7 +55,8 @@ def run_benchmark_session(
         # Run a single benchmark session and return the result if no rerun is requested.
         execution = run_benchmark_once(agents, runner=runner, output_path=output_path,
             output_fn=output_fn, viewer_starter=viewer_starter, llm_activity=llm_activity,
-            **({'results_dir': results_dir} if results_dir is not None else {}))
+            **({'results_dir': results_dir} if results_dir is not None else {}),
+            **({'after_suite': after_suite} if after_suite is not None else {}))
 
 
         
@@ -99,6 +101,7 @@ def run_benchmark_once(
     viewer_starter: ViewerStarter | None,
     llm_activity: LLMActivity | None = None,
     results_dir: str | Path | None = None,
+    after_suite: Callable | None = None,
 ) -> BenchmarkExecution:
 
     directory = validate_results_dir(output_path, results_dir)
@@ -234,6 +237,12 @@ def run_benchmark_once(
         if result_log is not None:
             result_log.append_suite_complete(result)
         print_suite_summary(result, output_fn)
+        if after_suite is not None and result_log is not None and hasattr(result_log, 'store'):
+            try:
+                after_suite(result_log.path.parent)
+            except Exception as exc:
+                # GT evaluation is independent of Agent execution and SDK judging.
+                output_fn(f'GT matching unavailable ({type(exc).__name__}); execution results retained.')
         if result_log is not None:
             print_viewer_footer(
                 result_log.path, None if viewer is None else viewer.url, output_fn
