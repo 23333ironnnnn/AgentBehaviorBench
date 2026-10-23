@@ -621,7 +621,7 @@ step = 1
 
 [[agents]]
 agent_id = "openchatbi"
-path = "resources/agents/63-openchatbi"
+path = "resources/agents/66-openchatbi"
 enabled = false
 status = "adapting"
 framework = "langgraph"
