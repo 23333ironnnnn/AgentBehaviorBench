@@ -637,3 +637,13 @@ framework = "acp"
 source = "https://github.com/Menfre01/waveloom"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "sigit"
+path = "resources/agents/72-sigit"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/getsigit/sigit"
+case = 1
+step = 3
