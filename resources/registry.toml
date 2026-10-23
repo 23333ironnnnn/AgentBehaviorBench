@@ -657,3 +657,13 @@ framework = "acp"
 source = "https://github.com/mark3labs/kit"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "gptme"
+path = "resources/agents/74-gptme"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/gptme/gptme"
+case = 1
+step = 1
