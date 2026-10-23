@@ -677,3 +677,13 @@ framework = "langgraph"
 source = "https://github.com/Aryan-Pardeshi/DeepResearch_AI"
 case = 1
 step = 2
+
+[[agents]]
+agent_id = "ra-aid"
+path = "resources/agents/76-ra-aid"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/ai-christianson/RA.Aid"
+case = 1
+step = 1
