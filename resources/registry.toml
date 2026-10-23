@@ -627,3 +627,13 @@ framework = "acp"
 source = "https://github.com/esengine/DeepSeek-Reasonix"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "waveloom"
+path = "resources/agents/71-waveloom"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/Menfre01/waveloom"
+case = 1
+step = 1
