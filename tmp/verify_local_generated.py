@@ -9,5 +9,3 @@ builtins.__import__ = no_kuma
 sys.argv = ['agentbench', 'evaluate', 'react-agent', '--sdk', 'local', '--cases', '1', '--max-steps', '2', '--results-dir', 'C:/Song_startup/benchmark/g', '--no-view', '-y']
 from agentbench.cli.main import cli
 cli()
-
-

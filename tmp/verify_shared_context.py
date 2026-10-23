@@ -10,5 +10,3 @@ __import__('os').environ['ABB_LOCAL_JUDGE_MAX_CHARS'] = '240000'
 sys.argv = ['agentbench', 'evaluate', 'react-agent', '--sdk', 'local', '--cases', '1', '--max-steps', '2', '--results-dir', 'C:/Song_startup/benchmark/g', '--no-view', '-y']
 from agentbench.cli.main import cli
 cli()
-
-
