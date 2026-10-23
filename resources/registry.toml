@@ -578,3 +578,13 @@ framework = "acp"
 source = "https://github.com/codewhale-hq/Codewhale"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "openchatbi"
+path = "resources/agents/66-openchatbi"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/zhongyu09/openchatbi"
+case = 1
+step = 1
