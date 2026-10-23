@@ -607,3 +607,13 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/mistralai/mistral-vibe"
 case = 1
+
+[[agents]]
+agent_id = "mini-opencode"
+path = "resources/agents/69-mini-opencode"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/amszuidas/mini-opencode"
+case = 1
+step = 1
