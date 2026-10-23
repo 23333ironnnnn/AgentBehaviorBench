@@ -647,3 +647,13 @@ framework = "acp"
 source = "https://github.com/getsigit/sigit"
 case = 1
 step = 3
+
+[[agents]]
+agent_id = "kit"
+path = "resources/agents/73-kit"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/mark3labs/kit"
+case = 1
+step = 1
