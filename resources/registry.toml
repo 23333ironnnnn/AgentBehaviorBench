@@ -598,3 +598,12 @@ framework = "acp"
 source = "https://github.com/MiniMax-AI/Mini-Agent"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "mistral-vibe"
+path = "resources/agents/68-mistral-vibe"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/mistralai/mistral-vibe"
+case = 1
