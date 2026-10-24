@@ -855,3 +855,13 @@ framework = "acp"
 source = "https://github.com/agentty-org/agentty"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "fx"
+path = "resources/agents/94-fx"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/vercel-labs/fx"
+case = 1
+step = 1
