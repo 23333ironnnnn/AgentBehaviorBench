@@ -845,3 +845,13 @@ framework = "acp"
 source = "https://github.com/KonghaYao/peri"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "agentty"
+path = "resources/agents/93-agentty"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/agentty-org/agentty"
+case = 1
+step = 1
