@@ -913,3 +913,12 @@ framework = "langgraph"
 source = "https://github.com/TW-NLP/DeepAgentForce"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "langrepl"
+path = "resources/agents/100-langrepl"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/midodimori/langrepl"
+case = 1
