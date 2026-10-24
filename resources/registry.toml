@@ -894,3 +894,12 @@ framework = "langgraph"
 source = "https://github.com/huygiatrng/AlpacaTradingAgent"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "vtcode"
+path = "resources/agents/98-vtcode"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/vinhnx/VTCode"
+case = 1
