@@ -717,3 +717,13 @@ framework = "acp"
 source = "https://github.com/stippi/code-assistant"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "autohand"
+path = "resources/agents/80-autohand"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/autohandai/code-cli"
+case = 1
+step = 2
