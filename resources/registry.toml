@@ -825,3 +825,13 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/getkimchi/kimchi"
 case = 1
+
+[[agents]]
+agent_id = "pydantic-deepagents"
+path = "resources/agents/91-pydantic-deepagents"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/vstorm-co/pydantic-deepagents"
+case = 1
+step = 1
