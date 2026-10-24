@@ -885,3 +885,12 @@ source = "https://github.com/CodeGraphContext/GraphARC"
 case = 1
 step = 1
 
+[[agents]]
+agent_id = "alpacatradingagent"
+path = "resources/agents/97-alpacatradingagent"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/huygiatrng/AlpacaTradingAgent"
+case = 1
+step = 1
