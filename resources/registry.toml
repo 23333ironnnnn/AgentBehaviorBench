@@ -816,3 +816,12 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/vybestack/llxprt-code"
 case = 1
+
+[[agents]]
+agent_id = "kimchi"
+path = "resources/agents/90-kimchi"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/getkimchi/kimchi"
+case = 1
