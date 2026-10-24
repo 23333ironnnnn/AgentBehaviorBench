@@ -942,3 +942,13 @@ framework = "acp"
 source = "https://github.com/topcheer/ggcode"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "docsentinel"
+path = "resources/agents/103-docsentinel"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/arthurpanhku/DocSentinel"
+case = 1
+step = 1
