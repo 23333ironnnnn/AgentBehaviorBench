@@ -777,3 +777,13 @@ framework = "acp"
 source = "https://github.com/bug-ops/zeph"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "fast-agent"
+path = "resources/agents/86-fast-agent"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/evalstate/fast-agent"
+case = 1
+step = 1
