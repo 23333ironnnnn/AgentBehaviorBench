@@ -922,3 +922,13 @@ status = "adapting"
 framework = "langgraph"
 source = "https://github.com/midodimori/langrepl"
 case = 1
+
+[[agents]]
+agent_id = "openharness"
+path = "resources/agents/101-openharness"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/zhijiewong/openharness"
+case = 1
+step = 2
