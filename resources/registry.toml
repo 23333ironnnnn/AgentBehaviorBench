@@ -707,3 +707,13 @@ framework = "acp"
 source = "https://github.com/dirac-run/dirac"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "code-assistant"
+path = "resources/agents/79-code-assistant"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/stippi/code-assistant"
+case = 1
+step = 1
