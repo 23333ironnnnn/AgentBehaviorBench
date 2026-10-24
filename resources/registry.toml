@@ -757,3 +757,13 @@ framework = "acp"
 source = "https://github.com/jin-bo/agentao"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "lambchat"
+path = "resources/agents/84-lambchat"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/Yanyutin753/LambChat"
+case = 1
+step = 1
