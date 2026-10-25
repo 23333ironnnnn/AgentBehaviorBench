@@ -1003,4 +1003,12 @@ source = "https://github.com/ConardLi/easy-agent"
 case = 1
 step = 1
 
-
+[[agents]]
+agent_id = "opensoul"
+path = "resources/agents/109-opensoul"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/NJX-njx/opensoul"
+case = 1
+step = 1
