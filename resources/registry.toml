@@ -1079,3 +1079,12 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/cuga-project/cuga-agent"
 case = 1
+
+[[agents]]
+agent_id = "qwenpaw"
+path = "resources/agents/118-qwenpaw"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/agentscope-ai/QwenPaw"
+case = 1
