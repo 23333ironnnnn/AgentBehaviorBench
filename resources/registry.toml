@@ -1051,3 +1051,13 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/sudoprivacy/sudocode"
 case = 1
+
+[[agents]]
+agent_id = "opencrabs"
+path = "resources/agents/114-opencrabs"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/opencrabs/opencrabs"
+case = 1
+step = 1
