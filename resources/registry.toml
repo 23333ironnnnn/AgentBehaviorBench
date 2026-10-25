@@ -1115,3 +1115,13 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/bubbuild/bub"
 case = 1
+
+[[agents]]
+agent_id = "open-code-review"
+path = "resources/agents/122-open-code-review"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/alibaba/open-code-review"
+case = 1
+step = 1
