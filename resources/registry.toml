@@ -962,3 +962,13 @@ framework = "acp"
 source = "https://github.com/stakpak/agent"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "tradingagents-astock"
+path = "resources/agents/105-tradingagents-astock"
+enabled = false
+status = "adapting"
+framework = "langgraph"
+source = "https://github.com/simonlin1212/TradingAgents-astock"
+case = 1
+step = 1
