@@ -1194,3 +1194,13 @@ status = "adapting"
 framework = "acp"
 source = "https://github.com/Muvon/octomind"
 case = 1
+
+[[agents]]
+agent_id = "ownpilot"
+path = "resources/agents/130-ownpilot"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/ownpilot/OwnPilot"
+case = 1
+step = 2
