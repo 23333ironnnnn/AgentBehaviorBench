@@ -1135,3 +1135,13 @@ framework = "langgraph"
 source = "https://github.com/ai-forever/giga_agent"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "synergy"
+path = "resources/agents/124-synergy"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/SII-Holos/synergy"
+case = 1
+step = 2
