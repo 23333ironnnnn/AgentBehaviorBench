@@ -1204,3 +1204,13 @@ framework = "acp"
 source = "https://github.com/ownpilot/OwnPilot"
 case = 1
 step = 2
+
+[[agents]]
+agent_id = "autodev"
+path = "resources/agents/131-autodev"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/phodal/auto-dev"
+case = 1
+step = 1
