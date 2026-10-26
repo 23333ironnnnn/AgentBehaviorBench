@@ -1165,3 +1165,13 @@ framework = "acp"
 source = "https://github.com/microclaw/microclaw"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "klaatcode"
+path = "resources/agents/127-klaatcode"
+enabled = false
+status = "adapting"
+framework = "acp"
+source = "https://github.com/KlaatAI/klaatcode"
+case = 1
+step = 2
