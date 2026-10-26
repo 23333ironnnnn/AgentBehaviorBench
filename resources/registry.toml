@@ -1234,3 +1234,13 @@ framework = "acp"
 source = "https://github.com/GCWing/OpenBitFun"
 case = 1
 step = 1
+
+[[agents]]
+agent_id = "row-bot"
+path = "resources/agents/134-row-bot"
+enabled = false
+status = "ready"
+framework = "langgraph"
+source = "https://github.com/siddsachar/row-bot"
+case = 1
+step = 1
