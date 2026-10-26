@@ -1224,3 +1224,13 @@ framework = "acp"
 source = "https://github.com/context-labs/whip"
 case = 1
 step = 3
+
+[[agents]]
+agent_id = "openbitfun"
+path = "resources/agents/133-openbitfun"
+enabled = false
+status = "ready"
+framework = "acp"
+source = "https://github.com/GCWing/OpenBitFun"
+case = 1
+step = 1
