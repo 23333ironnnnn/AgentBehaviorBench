@@ -50,13 +50,30 @@ def test_judge_request_attaches_trajectory_and_evidence_api_returns_it(project):
     assert attached['content']
 
 
-def test_package_without_trajectory_fails_host_validation(project, monkeypatch):
+def _host_after_run(project, monkeypatch, write):
     import agentbench.trajectory as trajectory
-    monkeypatch.setattr(trajectory, 'write', lambda directory, **kw: {'status': 'skipped', 'path': 'trajectory.json'})
+    monkeypatch.setattr(trajectory, 'write', write)
     service, _, _ = project
     result = run_one(service)
-    assert result['suite']['counts']['completed'] == 0
     suite, run = result['directory'], result['runs'][0]['id']
     api, _ = service._run(suite, run)
-    host = api.read('run.json')
-    assert host['validation'] == 'failed' and 'trajectory.json' in host['validation_error']
+    return result, api.read('run.json'), api.directory
+
+
+def test_missing_trajectory_is_reported_without_failing_the_execution(project, monkeypatch):
+    result, host, directory = _host_after_run(project, monkeypatch,
+                                              lambda directory, **kw: {'status': 'skipped', 'path': 'trajectory.json'})
+    assert not (directory / 'trajectory.json').exists()
+    assert result['suite']['counts']['completed'] == 1
+    assert host['status'] == 'succeeded' and host.get('validation') != 'failed'
+    assert host['trajectory']['status'] == 'failed' and host['trajectory']['error_type'] == 'FileNotFoundError'
+
+
+def test_unreadable_trajectory_is_reported_without_failing_the_execution(project, monkeypatch):
+    def corrupt(directory, **kw):
+        (directory / 'trajectory.json').write_text('{not json', encoding='utf-8')
+        return {'status': 'complete', 'path': 'trajectory.json'}
+    result, host, _ = _host_after_run(project, monkeypatch, corrupt)
+    assert result['suite']['counts']['completed'] == 1
+    assert host['status'] == 'succeeded' and host.get('validation') != 'failed'
+    assert host['trajectory']['status'] == 'failed' and host['trajectory']['error_type'] == 'JSONDecodeError'

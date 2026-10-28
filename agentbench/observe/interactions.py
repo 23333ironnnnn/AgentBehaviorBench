@@ -377,9 +377,11 @@ def load_index(directory):
     signature = tuple(files)
     with _LOCK:
         cached = _CACHE.get(str(root))
-        if cached is None or cached[0] != signature:
-            cached = (signature, InteractionIndex(root, files))
-            _CACHE[str(root)] = cached
+    if cached is None or cached[0] != signature:
+        # Build outside the lock: one slow attempt must not stall every other viewer request.
+        cached = (signature, InteractionIndex(root, files))
+    with _LOCK:
+        _CACHE[str(root)] = cached
         _CACHE.move_to_end(str(root))
         while len(_CACHE) > 4:
             _CACHE.popitem(last=False)
