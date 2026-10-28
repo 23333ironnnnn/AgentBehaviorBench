@@ -163,7 +163,7 @@ class RunViewAPI:
         self.run_id = directory.name
 
     def file(self, relative):
-        from .artifact_paths import artifact_file, archive_manifest
+        from .artifact_paths import artifact_file
         return artifact_file(self.directory, relative)
 
     def read(self, relative):
@@ -173,13 +173,12 @@ class RunViewAPI:
             return None
 
     def outputs(self):
-        from .artifact_paths import archive_manifest
         folders = [f'{p.name}/output' for p in sorted(self.directory.glob('invocation-*')) if p.is_dir()]
         try:
             inputs = self.file('evaluation/inputs')
         except FileNotFoundError:
             return folders
-        prefix = 'steps' if (self.directory / 'steps').is_dir() and not archive_manifest(self.directory) else 'evaluation/inputs'
+        prefix = 'steps' if (self.directory / 'steps').is_dir() else 'evaluation/inputs'
         return folders + [f'{prefix}/{p.name}' for p in sorted(inputs.iterdir())
                           if p.is_dir() and re.fullmatch(r'\d{4}', p.name)]
 

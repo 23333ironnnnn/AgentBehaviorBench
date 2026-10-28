@@ -80,8 +80,7 @@ def load_manifest(unit, agent_id):
         if len(set(attempts)) != len(attempts):
             raise GroundTruthError('Duplicate reference attempt')
         for attempt in attempts:
-            parent = 'trajectory' if (case_directory / 'trajectory').is_dir() else 'attempts'
-            folder = within(case_directory, case_directory / parent / attempt)
+            folder = within(case_directory, case_directory / 'attempts' / attempt)
             if not folder.is_dir():
                 raise GroundTruthError('Reference attempt directory is unavailable')
         defects.append({**defect, '_case_directory': case_directory})

@@ -87,10 +87,6 @@ def execute_judge(judge, request, *, directory, environ):
     lock = SuiteLock(Path(directory) / 'judge-protocol-lock')
     lock.acquire()
     try:
-        from agentbench.observe.legacy_archive import restore_archive
-        from agentbench.observe.legacy_archive import archive_manifest
-        if archive_manifest(directory):
-            restore_archive(directory)
         return _execute_judge(judge, request, directory=directory, environ=environ)
     finally:
         lock.close()

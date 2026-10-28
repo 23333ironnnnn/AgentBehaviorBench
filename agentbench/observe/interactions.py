@@ -59,12 +59,7 @@ def _files(root):
                 names.add((folder / name).relative_to(root).as_posix())
     for path in list((root / 'workspace-files').glob('*.json')) + list((root / 'evaluation/workspace-files').glob('*.json')):
         names.add('evaluation/workspace-files/' + path.name)
-    from .artifact_paths import archive_manifest, artifact_file
-    archived = archive_manifest(root)
-    if archived:
-        names.update(name for name in archived['files'] if name.startswith('evaluation/inputs/')
-            and Path(name).name in ('framework.jsonl', 'input.json', 'mapped-input.json', 'request.json',
-                                   'result.json', 'submission.json', 'file-evidence.json'))
+    from .artifact_paths import artifact_file
     files = []
     for name in sorted(names):
         candidate = root / name

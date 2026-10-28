@@ -9,9 +9,7 @@ def read_trace(api, *, limit=8 * 1024 * 1024):
 
     def read(relative):
         nonlocal size
-        path = api.file(relative)
-        from agentbench.observe.artifact_paths import ArtifactFile
-        raw = path.read_bytes() if isinstance(path, ArtifactFile) else read_bytes(path, limit=limit)
+        raw = read_bytes(api.file(relative), limit=limit)
         size += len(raw)
         if size > limit:
             raise ValueError('Trace exceeds context limit; no silent truncation')
@@ -57,8 +55,7 @@ def read_reference_traces(defect, *, limit=8 * 1024 * 1024):
     root = Path(defect['_case_directory'])
     traces = []
     for attempt in defect['reference_attempts']:
-        parent = 'trajectory' if (root / 'trajectory').is_dir() else 'attempts'
-        directory = within(root, root / parent / attempt)
+        directory = within(root, root / 'attempts' / attempt)
         trace = read_trace(RunViewAPI(directory), limit=limit)
         for event in trace['events']:
             event['id'] = attempt + '/' + event['id']
