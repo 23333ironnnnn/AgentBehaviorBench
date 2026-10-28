@@ -285,6 +285,9 @@ class RunViewAPI:
         if route == 'timeline':
             from .timeline import timeline
             return timeline(self)
+        if route == 'trajectory':
+            from agentbench import trajectory
+            return trajectory.load(self.directory)
         match = re.fullmatch(r'otel/([0-9a-f]{16})/payload/(input|output|error|metadata|events)', route)
         if match:
             span = next(s for s in self.spans()['spans'] if s['span_id'] == match[1])

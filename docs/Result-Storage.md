@@ -17,7 +17,8 @@ results/
     cases/<storage-id>/
       case.json                published prepared Case
       attempts/<id>/
-        run.json               host execution, cleanup and trace acceptance
+        run.json               host execution, cleanup, trace acceptance and trajectory status
+        trajectory.json        derived step sequence (abb.agent-trajectory.v1)
         manifest.json          SDK execution summary and step index
         case.json              exact SDK-loaded Case with execution identities
         process.json           execution configuration/provenance
@@ -58,10 +59,20 @@ must not be collapsed just because some fields coincide.
 4. Save Judge context as path-and-SHA-256 references to the already committed
    Case, Inputs and submissions. The Judge verifies and expands those references
    in memory. SDK request ledgers remain in place for cancellation and retry.
-5. Stop containers and validate host trace evidence. Only then remove temporary
-   `channel`, `agent-request` and `agent-output` communication directories.
-   Failed cleanup or unaccepted traces retain transport files for diagnosis.
-   No execution artifact is moved or repacked at completion.
+5. Stop containers and validate host trace evidence. Then derive
+   `trajectory.json` from the committed records and record its status in
+   `run.json`; a derivation failure writes the file with `status: failed`.
+   Only then remove temporary `channel`, `agent-request` and `agent-output`
+   communication directories. Failed cleanup or unaccepted traces retain
+   transport files for diagnosis. No execution artifact is moved or repacked
+   at completion.
+
+`trajectory.json` is self-contained: every step keeps the full model input and
+output and its tool logs, and `sources` records the digests of the files it was
+derived from. Historical attempts without the file are derived on read by the
+viewer and evaluation API, or persistently with
+`agentbench trajectory build DIR --write`. See
+[agentbench/trajectory/README.md](../agentbench/trajectory/README.md).
 
 Running, failed, completed and resumed attempts use the same paths. A Judge
 retry updates its task/report and native ledger without copying the execution

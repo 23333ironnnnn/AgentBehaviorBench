@@ -370,7 +370,8 @@ class InteractionIndex:
                 'warnings': self.warnings, 'correlation': self.correlation}
 
 
-def interactions(directory, query):
+def load_index(directory):
+    """The cached index for one attempt directory; rebuilt when its files change."""
     root = Path(directory).resolve(strict=True)
     files = _files(root)
     signature = tuple(files)
@@ -382,7 +383,11 @@ def interactions(directory, query):
         _CACHE.move_to_end(str(root))
         while len(_CACHE) > 4:
             _CACHE.popitem(last=False)
-    return cached[1].query(query)
+    return cached[1]
+
+
+def interactions(directory, query):
+    return load_index(directory).query(query)
 
 
 if __name__ == '__main__':
